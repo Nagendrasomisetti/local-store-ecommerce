@@ -3,7 +3,7 @@ import cors from 'cors';
 import { query, get, run } from './db';
 
 const app = express();
-const PORT = 4000;
+const PORT = Number(process.env.PORT) || 4000;
 
 app.use(cors());
 app.use(express.json());
@@ -388,5 +388,5 @@ app.post('/api/orders', async (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Shared Backend running on http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
