@@ -1,0 +1,6 @@
+{
+  "name": "XYZ Consumer App",
+  "description": "Clean, mobile-first consumer ordering app for xyz.com to find trusted local shops, scan shop QR codes, browse fresh products, place orders, and track deliveries.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

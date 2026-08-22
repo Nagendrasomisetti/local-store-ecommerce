@@ -1,0 +1,6 @@
+{
+  "name": "Retailer Shop App",
+  "description": "A mobile-first retailer shop owner application for managing live orders, food preparation, and delivery assignments.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

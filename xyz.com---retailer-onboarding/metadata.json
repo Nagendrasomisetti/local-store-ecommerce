@@ -1,0 +1,6 @@
+{
+  "name": "xyz.com - Retailer Onboarding",
+  "description": "Official retailer onboarding platform for xyz.com to register local stores, generate unique store names, credentials, and custom QR codes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

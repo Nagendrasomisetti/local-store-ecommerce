@@ -1,0 +1,6 @@
+{
+  "name": "XYZ Delivery Driver App",
+  "description": "Mobile-first delivery driver prototype for the XYZ platform featuring real-time order acceptance, turn-by-turn route navigation, sequential pickup to drop-off order lifecycle, cash collection, and earnings tracking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
