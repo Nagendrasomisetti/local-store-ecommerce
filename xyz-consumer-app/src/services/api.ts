@@ -2,6 +2,7 @@ import { Consumer, Shop, Product, Order, Address, ApiResponse, AuthResponse } fr
 
 const TOKEN_KEY = 'xyz_auth_token';
 const USER_KEY = 'user_data';
+const API_BASE_URL = ((import.meta as ImportMeta & { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL || '').replace(/\/$/, '');
 
 function normalizeUser(user: any): Consumer {
   return { ...user, saved_addresses: user?.saved_addresses || [], created_at: user?.created_at || new Date().toISOString() };
@@ -92,7 +93,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(endpoint, {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers,
   });
