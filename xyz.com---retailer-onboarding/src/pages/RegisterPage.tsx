@@ -191,7 +191,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
         email: email.trim(),
       };
 
-      const res = await fetch('http://localhost:4000/api/retailers/register', {
+      const res = await fetch('/api/retailers/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
