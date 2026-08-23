@@ -86,8 +86,19 @@ export const OrderStatusScreen: React.FC = () => {
 
   const currentRank = statusRank[currentStatus] ?? 3;
 
-  const handleAdvanceStatus = (nextStatus: OrderStatus) => {
+  const handleAdvanceStatus = async (nextStatus: OrderStatus) => {
     if (order) {
+      if (nextStatus === 'PREPARING') {
+        const response = await fetch(`/api/orders/${order.id}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'PREPARING' }),
+        });
+        if (!response.ok) {
+          showToast('Failed to update order status', 'error');
+          return;
+        }
+      }
       updateOrderStatus(order.id, nextStatus);
       showToast(`Order #${order.id} updated to ${nextStatus.replace('_', ' ')}!`, 'success');
     }
