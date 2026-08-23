@@ -16,6 +16,9 @@ import {
 } from '../data/mockData';
 import { soundManager } from '../utils/audio';
 
+const API_BASE_URL = ((import.meta as ImportMeta & { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL || '').replace(/\/$/, '');
+const apiUrl = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
+
 interface ToastState {
   message: string;
   type: 'success' | 'error' | 'info';
@@ -178,7 +181,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const fetchOrders = async () => {
     if (!shopProfile?.id) return;
     try {
-      const res = await fetch(`/api/orders?role=RETAILER&storeId=${shopProfile.id}`);
+      const res = await fetch(apiUrl(`/api/orders?role=RETAILER&storeId=${shopProfile.id}`));
       const data = await res.json();
       if (data.success) {
         setOrders(data.data.map((o: any) => ({
@@ -205,7 +208,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const fetchProducts = async () => {
     if (!shopProfile?.id) return;
     try {
-      const res = await fetch(`/api/stores/${shopProfile.id}/products`);
+      const res = await fetch(apiUrl(`/api/stores/${shopProfile.id}/products`));
       const data = await res.json();
       if (data.success) {
         setProducts(data.data.map((p: any) => ({
@@ -232,7 +235,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     if (!isAuthenticated || !shopProfile?.id) return;
-    const sse = new EventSource(`/api/events?role=RETAILER&storeId=${shopProfile.id}`);
+    const sse = new EventSource(apiUrl(`/api/events?role=RETAILER&storeId=${shopProfile.id}`));
     sse.onmessage = () => { 
       fetchOrders(); 
       fetchProducts();
@@ -381,14 +384,14 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsActionLoading(true);
     setActionLoadingText('Logging in...');
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch(apiUrl('/api/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier: shopId, password: pass })
       });
       const data = await res.json();
       if (data.success && data.user.role === 'RETAILER') {
-        const storeRes = await fetch(`/api/stores/${data.user.id}`);
+        const storeRes = await fetch(apiUrl(`/api/stores/${data.user.id}`));
         const storeData = await storeRes.json();
         const store = storeData.data?.shop || { id: 'shop_sun123', name: 'Demo Shop' };
         
@@ -439,7 +442,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsActionLoading(true);
     setActionLoadingText('Accepting Order...');
     try {
-      await fetch(`/api/orders/${orderId}/status`, {
+      await fetch(apiUrl(`/api/orders/${orderId}/status`), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'ACCEPTED' })
@@ -470,7 +473,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsActionLoading(true);
     setActionLoadingText('Marking Ready...');
     try {
-      await fetch(`/api/orders/${orderId}/status`, {
+      await fetch(apiUrl(`/api/orders/${orderId}/status`), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'READY_FOR_PICKUP' })
@@ -489,7 +492,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setActionLoadingText(`Assigning to ${driver.name}...`);
     try {
       const sharedDriverId = driver.id === 'd001' ? 'drv_1' : driver.id;
-      const response = await fetch(`/api/orders/${orderId}/status`, {
+      const response = await fetch(apiUrl(`/api/orders/${orderId}/status`), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'READY_FOR_PICKUP', driver_id: sharedDriverId }),
@@ -547,7 +550,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsActionLoading(true);
     setActionLoadingText('Making order available to delivery agents...');
     try {
-      const response = await fetch(`/api/orders/${orderId}/status`, {
+      const response = await fetch(apiUrl(`/api/orders/${orderId}/status`), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'READY_FOR_PICKUP' }),
@@ -806,7 +809,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsActionLoading(true);
     setActionLoadingText('Adding Product...');
     try {
-      const res = await fetch('/api/products', {
+      const res = await fetch(apiUrl('/api/products'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -843,7 +846,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (!current) throw new Error('Not found');
       
       const merged = { ...current, ...updates };
-      const res = await fetch(`/api/products/${id}`, {
+      const res = await fetch(apiUrl(`/api/products/${id}`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -881,7 +884,7 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsActionLoading(true);
     setActionLoadingText('Deleting...');
     try {
-      const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+      const res = await fetch(apiUrl(`/api/products/${id}`), { method: 'DELETE' });
       if (res.ok) {
         await fetchProducts();
         showToast('Product removed', 'info');
