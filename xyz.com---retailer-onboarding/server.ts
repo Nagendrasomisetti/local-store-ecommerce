@@ -16,6 +16,10 @@ import {
 async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT) || 3000;
+  const sharedBackendUrl = process.env.SHARED_BACKEND_URL ||
+    (process.env.NODE_ENV === 'production'
+      ? 'https://xyz-shared-backend.onrender.com'
+      : 'http://localhost:4000');
 
   // Middlewares
   app.use(express.json({ limit: '10mb' }));
@@ -72,130 +76,51 @@ async function startServer() {
         mobileNumber,
         email,
       } = req.body;
+      const sharedResponse = await fetch(`${sharedBackendUrl}/api/retailers/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          storeName,
+          uniqueStoreName,
+          storePhoto,
+          storeAddress,
+          ownerName,
+          countryCode,
+          mobileNumber,
+          email,
+        }),
+      });
+      const sharedData = await sharedResponse.json();
 
-      // 1. Validation
-      if (!storeName || typeof storeName !== 'string' || !storeName.trim()) {
-        res.status(400).json({ error: 'Store Name is required' });
-        return;
-      }
-      if (!storeAddress || typeof storeAddress !== 'string' || !storeAddress.trim()) {
-        res.status(400).json({ error: 'Store Address is required' });
-        return;
-      }
-      if (!ownerName || typeof ownerName !== 'string' || !ownerName.trim()) {
-        res.status(400).json({ error: 'Owner Name is required' });
-        return;
-      }
-      if (!mobileNumber || typeof mobileNumber !== 'string' || !mobileNumber.trim()) {
-        res.status(400).json({ error: 'Mobile Number is required' });
-        return;
-      }
-      if (!email || typeof email !== 'string' || !email.trim()) {
-        res.status(400).json({ error: 'Email Address is required' });
-        return;
-      }
-
-      const cleanMobile = mobileNumber.trim().replace(/\D/g, '');
-      if (cleanMobile.length < 7 || cleanMobile.length > 15) {
-        res.status(400).json({
-          error: 'Please enter a valid mobile number (typically 10 digits).',
+      if (!sharedResponse.ok) {
+        res.status(sharedResponse.status).json({
+          error: sharedData.message || sharedData.error || 'Failed to register store.',
+          suggested: sharedData.suggested,
+          existingStoreName: sharedData.existingStoreName,
         });
         return;
       }
 
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email.trim())) {
-        res.status(400).json({ error: 'Please enter a valid email address.' });
-        return;
-      }
+      const finalUniqueStoreName = sharedData.username || sharedData.uniqueStoreName;
+      const storeLink = sharedData.storeLink || `xyz.com/store/${finalUniqueStoreName}`;
+      const qrDataUrl = await generateQrCode(`https://${storeLink}`);
 
-      const retailers = getAllRetailers();
-
-      // Check duplicates for phone/email
-      const duplicate = retailers.find(
-        (r) =>
-          r.mobileNumber.replace(/\D/g, '') === cleanMobile ||
-          r.email.toLowerCase() === email.trim().toLowerCase()
-      );
-
-      if (duplicate) {
-        res.status(409).json({
-          error: `A store is already registered with this mobile number or email (Store: ${duplicate.uniqueStoreName || duplicate.storeName}). If you need help, please contact support.`,
-          existingStoreName: duplicate.uniqueStoreName,
-        });
-        return;
-      }
-
-      // 2. Generate or Validate Unique Store Name
-      let finalUniqueStoreName = '';
-      if (uniqueStoreName && typeof uniqueStoreName === 'string' && uniqueStoreName.trim()) {
-        const customSlug = slugify(uniqueStoreName);
-        if (customSlug.length < 3) {
-          res.status(400).json({ error: 'Unique Store Name must be at least 3 characters.' });
-          return;
-        }
-        if (!isStoreNameAvailable(customSlug, retailers)) {
-          res.status(409).json({
-            error: `The unique store name "${customSlug}" is already taken. Please choose another one.`,
-            suggested: generateUniqueStoreName(customSlug, retailers),
-          });
-          return;
-        }
-        finalUniqueStoreName = customSlug;
-      } else {
-        finalUniqueStoreName = generateUniqueStoreName(storeName.trim(), retailers);
-      }
-
-      // 3. Temporary Password & Hashing
-      const temporaryPassword = generateTemporaryPassword();
-      const { hash, salt } = hashPassword(temporaryPassword);
-
-      // 4. Store Link & QR code
-      const storeLink = `xyz.com/store/${finalUniqueStoreName}`;
-      const fullStoreUrl = `https://${storeLink}`;
-      const qrDataUrl = await generateQrCode(fullStoreUrl);
-
-      const now = new Date().toISOString();
-      const newRetailer: StoredRetailer = {
-        id: `ret_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
-        uniqueStoreName: finalUniqueStoreName,
-        storeName: storeName.trim(),
-        storeLogo: storePhoto || null,
-        storeAddress: storeAddress.trim(),
-        ownerName: ownerName.trim(),
-        countryCode: countryCode.trim(),
-        mobileNumber: cleanMobile,
-        email: email.trim().toLowerCase(),
-        passwordHash: hash,
-        passwordSalt: salt,
-        storeLink,
-        qrDataUrl,
-        createdAt: now,
-        updatedAt: now,
-        status: 'ACTIVE',
-      };
-
-      // 5. Persistence
-      retailers.push(newRetailer);
-      saveAllRetailers(retailers);
-
-      console.log(`[xyz.com] New retailer registered: ${storeName} (Unique Store Name: ${finalUniqueStoreName})`);
-
-      // 6. Response
       res.status(201).json({
         success: true,
         message: 'Store registration successful',
+        storeId: sharedData.storeId,
+        username: finalUniqueStoreName,
         uniqueStoreName: finalUniqueStoreName,
-        storeName: newRetailer.storeName,
-        storeAddress: newRetailer.storeAddress,
-        ownerName: newRetailer.ownerName,
-        mobileNumber: `${countryCode} ${cleanMobile}`,
-        email: newRetailer.email,
-        temporaryPassword,
+        storeName: sharedData.storeName || storeName,
+        storeAddress: sharedData.storeAddress || storeAddress,
+        ownerName: sharedData.ownerName || ownerName,
+        mobileNumber: sharedData.mobileNumber || `${countryCode} ${mobileNumber}`,
+        email: sharedData.email || email,
+        temporaryPassword: sharedData.temporaryPassword,
         storeLink,
         qrDataUrl,
-        createdAt: now,
-        status: 'ACTIVE',
+        createdAt: sharedData.createdAt || new Date().toISOString(),
+        status: sharedData.status || 'ACTIVE',
       });
     } catch (err: any) {
       console.error('Registration error:', err);
