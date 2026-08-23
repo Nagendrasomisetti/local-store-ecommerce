@@ -2,6 +2,9 @@ import React, { createContext, useContext, useState, useEffect, useMemo, useCall
 import { DeliveryOrder, Driver, DriverStats, OrderStatus, VehicleType } from '../types';
 import { INITIAL_DRIVERS, INITIAL_ORDERS } from '../data/mockData';
 
+const API_BASE_URL = ((import.meta as ImportMeta & { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL || '').replace(/\/$/, '');
+const apiUrl = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
+
 export type AppTab = 'home' | 'orders' | 'navigation' | 'earnings' | 'history' | 'profile';
 
 interface DriverContextType {
@@ -88,7 +91,7 @@ export const DriverProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const fetchOrders = async () => {
     if (!currentDriver?.driver_id) return;
     try {
-      const res = await fetch(`/api/orders?role=DRIVER&userId=${currentDriver.driver_id}`);
+      const res = await fetch(apiUrl(`/api/orders?role=DRIVER&userId=${currentDriver.driver_id}`));
       const data = await res.json();
       if (data.success) {
         setOrders(data.data.map((o: any) => ({
@@ -120,7 +123,7 @@ export const DriverProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   useEffect(() => {
     if (!currentDriver) return;
-    const sse = new EventSource(`/api/events?role=DRIVER&userId=${currentDriver.driver_id}`);
+    const sse = new EventSource(apiUrl(`/api/events?role=DRIVER&userId=${currentDriver.driver_id}`));
     sse.onmessage = () => fetchOrders();
     return () => sse.close();
   }, [currentDriver]);
@@ -216,7 +219,7 @@ export const DriverProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Auth: Login
   const login = async (username: string, _password?: string) => {
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch(apiUrl('/api/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier: username, password: _password || 'Xyz@1234' })
@@ -245,7 +248,7 @@ export const DriverProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     vehicle_type: VehicleType;
   }) => {
     try {
-      const res = await fetch('/api/auth/register', {
+      const res = await fetch(apiUrl('/api/auth/register'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: data.full_name, mobile: data.mobile, email: data.email, password: data.password || 'Xyz@1234', role: 'DRIVER' })
@@ -291,7 +294,7 @@ export const DriverProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const acceptOrder = async (orderId: string) => {
     if (!currentDriver) return;
     try {
-      const res = await fetch(`/api/orders/${orderId}/status`, {
+      const res = await fetch(apiUrl(`/api/orders/${orderId}/status`), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'ACCEPTED', driver_id: currentDriver.driver_id })
@@ -340,7 +343,7 @@ export const DriverProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Order Lifecycle: Picked Up
   const markAsPickedUp = async (orderId: string, proofNote?: string) => {
     try {
-      await fetch(`/api/orders/${orderId}/status`, {
+      await fetch(apiUrl(`/api/orders/${orderId}/status`), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'OUT_FOR_DELIVERY' })
@@ -353,7 +356,7 @@ export const DriverProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Order Lifecycle: Out for delivery
   const markAsOutForDelivery = async (orderId: string) => {
     try {
-      await fetch(`/api/orders/${orderId}/status`, {
+      await fetch(apiUrl(`/api/orders/${orderId}/status`), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'OUT_FOR_DELIVERY' })
@@ -380,7 +383,7 @@ export const DriverProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Order Lifecycle: Mark as Delivered
   const markAsDelivered = async (orderId: string, proofImage?: string) => {
     try {
-      await fetch(`/api/orders/${orderId}/status`, {
+      await fetch(apiUrl(`/api/orders/${orderId}/status`), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'DELIVERED' })
